@@ -1,0 +1,11 @@
+cam0=[6338.47   0     1035.675
+        0     6338.47 960.073
+        0       0       1     ]
+cam1=[6338.47   0     1515.164
+        0     6338.47 960.073
+        0       0       1]
+doffs=479.489 # disparity offset, add this when getting the 3d coordinate as this 2 specific images have different principle points
+baseline=171.548
+width=2796
+height=1984
+ndisp=390  # number of  disparities

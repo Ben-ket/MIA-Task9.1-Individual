@@ -1,0 +1,11 @@
+cam0=[3979.911     0      1244.772
+        0        3979.911 1019.507
+        0          0        1      ] # Intrinsics matrix for camera 0
+cam1=[3979.911     0      1369.115
+        0        3979.911 1019.507
+        0          0        1      ]# Intrinsics matrix for camera 1
+doffs=124.343 # Disparity offset, this 2 pictures have different principle points so this offset helps create an accurate depth map
+baseline=193.001
+width=2964
+height=2000
+ndisp=270 # number of disparities
