@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import re
-
+import math
 
 
 def read_calib(file_path):
@@ -25,9 +25,17 @@ def read_calib(file_path):
 
     return info
 
-def disparity():
-    return
 
+def disparity(img_left, img_right, ndisp):
+    num_disparities = math.ceil(ndisp / 16.0) * 16
+
+    stereo = cv2.StereoBM_create(numDisparities=num_disparities, blockSize=15)
+
+    raw_disparity = stereo.compute(img_left, img_right)
+
+    disparity = raw_disparity.astype(np.float32) / 16.0
+
+    return disparity
     
 
 
@@ -40,6 +48,10 @@ def main():
 
     info0 = read_calib('dataset/img0/calib.txt')
     info1 = read_calib('dataset/img1/calib.txt')
+
+    disparity0 = disparity(img0l, img0r, info0['ndisp'])
+    disparity1 = disparity(img1l, img1r, info1['ndisp'])
+
 
 
 if __name__ == '__main__':
