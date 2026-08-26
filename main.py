@@ -10,7 +10,7 @@ def read_calib(file_path):
     with open(file_path, 'r') as f:
         content = f.read()
 
-    pattern = r'(\w+)\s*=\s*(\[[^\]]+\]|[\d\.]+)'
+    pattern = r'(\w+)\s*=\s*(\[[^\]]+\]|[\d\.]+)' # pattern for matching key-value pairs
     matches = re.findall(pattern, content)
 
     for key, value in matches:
@@ -25,7 +25,6 @@ def read_calib(file_path):
 
     return info
 
-
 def disparity(img_left, img_right, ndisp):
     num_disparities = math.ceil(ndisp / 16.0) * 16
 
@@ -36,7 +35,16 @@ def disparity(img_left, img_right, ndisp):
     disparity = raw_disparity.astype(np.float32) / 16.0
 
     return disparity
+
+def save_noramlize_disparity(disparity, output_path):
+    disp_vis = np.clip(disparity, 0, None)
+    disp_normalized = cv2.normalize(disp_vis, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
     
+    heatmap = cv2.applyColorMap(disp_normalized, cv2.COLORMAP_JET)
+    cv2.imwrite(output_path, heatmap)
+    
+    return heatmap
+
 
 
 def main():
@@ -51,6 +59,9 @@ def main():
 
     disparity0 = disparity(img0l, img0r, info0['ndisp'])
     disparity1 = disparity(img1l, img1r, info1['ndisp'])
+
+    save_noramlize_disparity(disparity0, 'disparity0.png')
+    save_noramlize_disparity(disparity1, 'disparity1.png')
 
 
 
