@@ -27,14 +27,24 @@ def read_calib(file_path):
 
 def disparity(img_left, img_right, ndisp):
     num_disparities = math.ceil(ndisp / 16.0) * 16
-
-    stereo = cv2.StereoBM_create(numDisparities=num_disparities, blockSize=15)
+    block_size = 7
+    
+    # StereoSGBM reduces disparity noise compared to StereoBM
+    stereo = cv2.StereoSGBM_create(
+        minDisparity=0,
+        numDisparities=num_disparities,
+        blockSize=block_size,
+        P1=8 * 3 * block_size ** 2,
+        P2=32 * 3 * block_size ** 2,
+        disp12MaxDiff=1,
+        uniquenessRatio=10,
+        speckleWindowSize=100,
+        speckleRange=32,
+        mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY
+    )
 
     raw_disparity = stereo.compute(img_left, img_right)
-
-    disparity = raw_disparity.astype(np.float32) / 16.0
-
-    return disparity
+    return raw_disparity.astype(np.float32) / 16.0
 
 def save_noramlize_disparity(disparity, output_path):
     disp_vis = np.clip(disparity, 0, None)
