@@ -45,6 +45,24 @@ def save_noramlize_disparity(disparity, output_path):
     
     return heatmap
 
+def get_pixel_depth(disparity_map, calib_info, dataset_label="Dataset"):
+    h, w = disparity_map.shape
+    px_x, px_y = w // 2, h // 2
+    
+    disp = disparity_map[px_y, px_x]
+    
+    if disp <= 0 or np.isnan(disp):
+        depth = None
+        print(f"{dataset_label} - Pixel ({px_x}, {px_y}): Disparity = {disp:.2f} px, Depth = Invalid/Out of Range")
+    else:
+        focal_length = calib_info['cam0'][0][0]
+        baseline = calib_info['baseline']
+        doffs = calib_info['doffs']
+
+        depth = (baseline * focal_length) / (disp + doffs)
+        print(f"{dataset_label} - Pixel ({px_x}, {px_y}): Disparity = {disp:.2f} px, Depth = {depth:.2f} mm")
+
+    return disp, depth
 
 
 def main():
@@ -62,6 +80,9 @@ def main():
 
     save_noramlize_disparity(disparity0, 'disparity0.png')
     save_noramlize_disparity(disparity1, 'disparity1.png')
+
+    get_pixel_depth(disparity0, info0, "Dataset 0")
+    get_pixel_depth(disparity1, info1, "Dataset 1")
 
 
 
