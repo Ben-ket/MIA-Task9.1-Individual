@@ -64,13 +64,70 @@ def get_pixel_depth(disparity_map, calib_info, dataset_label="Dataset"):
 
     return disp, depth
 
+# BONUS
+
+def generate_point_cloud(disparity_map, img_bgr, calib_info, max_depth=10000.0):
+    f = calib_info['cam0'][0][0]
+    cx = calib_info['cam0'][0][2]
+    cy = calib_info['cam0'][1][2]
+    B = calib_info['baseline']
+    doffs = calib_info['doffs']
+
+    h, w = disparity_map.shape
+    u, v = np.meshgrid(np.arange(w), np.arange(h))
+
+    
+    valid_mask = (disparity_map > 1.0) & (~np.isnan(disparity_map))
+
+    u_valid = u[valid_mask]
+    v_valid = v[valid_mask]
+    d_valid = disparity_map[valid_mask]
+
+    Z = (B * f) / (d_valid + doffs)
+    
+    
+    depth_mask = (Z > 0) & (Z < max_depth)
+    
+    Z = Z[depth_mask]
+    u_valid = u_valid[depth_mask]
+    v_valid = v_valid[depth_mask]
+
+    X = -((u_valid - cx) * Z) / f
+    Y = -((v_valid - cy) * Z) / f
+
+    points = np.vstack((X, Y, Z)).T
+    colors = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)[valid_mask][depth_mask]
+
+    return points, colors
+
+
+def write_ply(filename, points, colors):
+    header = f"""ply
+format ascii 1.0
+element vertex {len(points)}
+property float x
+property float y
+property float z
+property uchar red
+property uchar green
+property uchar blue
+end_header
+"""
+    data = np.hstack((points, colors.astype(np.uint32)))
+
+    with open(filename, 'w') as f:
+        f.write(header)
+        np.savetxt(f, data, fmt="%.4f %.4f %.4f %d %d %d")
+
 
 def main():
-    img0l = cv2.cvtColor(cv2.imread('dataset/img0/im0.png'),cv2.COLOR_BGR2GRAY)
-    img0r = cv2.cvtColor(cv2.imread('dataset/img0/im1.png'),cv2.COLOR_BGR2GRAY)
+    img0_bgr = cv2.imread('dataset/img0/im0.png')
+    img0l = cv2.cvtColor(img0_bgr, cv2.COLOR_BGR2GRAY)
+    img0r = cv2.cvtColor(cv2.imread('dataset/img0/im1.png'), cv2.COLOR_BGR2GRAY)
 
-    img1l = cv2.cvtColor(cv2.imread('dataset/img1/im0.png'),cv2.COLOR_BGR2GRAY)
-    img1r = cv2.cvtColor(cv2.imread('dataset/img1/im1.png'),cv2.COLOR_BGR2GRAY)
+    img1_bgr = cv2.imread('dataset/img1/im0.png')
+    img1l = cv2.cvtColor(img1_bgr, cv2.COLOR_BGR2GRAY)
+    img1r = cv2.cvtColor(cv2.imread('dataset/img1/im1.png'), cv2.COLOR_BGR2GRAY)
 
     info0 = read_calib('dataset/img0/calib.txt')
     info1 = read_calib('dataset/img1/calib.txt')
@@ -83,6 +140,12 @@ def main():
 
     get_pixel_depth(disparity0, info0, "Dataset 0")
     get_pixel_depth(disparity1, info1, "Dataset 1")
+
+    pts0, col0 = generate_point_cloud(disparity0, img0_bgr, info0)
+    write_ply('point_cloud0.ply', pts0, col0)
+    
+    pts1, col1 = generate_point_cloud(disparity1, img1_bgr, info1)
+    write_ply('point_cloud1.ply', pts1, col1)
 
 
 
