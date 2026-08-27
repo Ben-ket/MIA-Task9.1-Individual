@@ -102,19 +102,46 @@ def generate_point_cloud(disparity_map, img_bgr, calib_info, max_depth=10000.0):
     u_valid = u_valid[depth_mask]
     v_valid = v_valid[depth_mask]
 
+    # Downsammpling the point cloud to further reduce file size
+
+    step = 2
+
+    Z = Z[::step]
+    u_valid = u_valid[::step]
+    v_valid = v_valid[::step]
+
     X = -((u_valid - cx) * Z) / f
     Y = -((v_valid - cy) * Z) / f
 
     points = np.vstack((X, Y, Z)).T
-    colors = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)[valid_mask][depth_mask]
+    colors = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)[valid_mask][depth_mask][::step]
 
     return points, colors
 
 
 def write_ply(filename, points, colors):
+    # Compressing the ply file into a binary format to lessen file size (before was ~150mb each)
+    num_points = len(points)
+    vertex_type = [
+        ('x', 'f4'),
+        ('y', 'f4'),
+        ('z', 'f4'),
+        ('red', 'u1'),
+        ('green', 'u1'),
+        ('blue', 'u1'),
+    ]
+
+    vertices = np.empty(num_points, dtype=vertex_type)
+    vertices['x'] = points[:, 0]
+    vertices['y'] = points[:, 1]
+    vertices['z'] = points[:, 2]
+    vertices['red'] = colors[:, 0]
+    vertices['green'] = colors[:, 1]
+    vertices['blue'] = colors[:, 2]
+
     header = f"""ply
-format ascii 1.0
-element vertex {len(points)}
+format binary_little_endian 1.0
+element vertex {num_points}
 property float x
 property float y
 property float z
@@ -123,11 +150,10 @@ property uchar green
 property uchar blue
 end_header
 """
-    data = np.hstack((points, colors.astype(np.uint32)))
 
-    with open(filename, 'w') as f:
-        f.write(header)
-        np.savetxt(f, data, fmt="%.4f %.4f %.4f %d %d %d")
+    with open(filename, 'wb') as f:
+        f.write(header.encode('ascii'))
+        vertices.tofile(f)
 
 
 def main():
